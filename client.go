@@ -117,7 +117,7 @@ func New(opts ...ClientOpts) (out *Client, err error) {
 }
 
 func (c *Client) LoadCookies(path string) (err error) {
-	f, err := os.Open("./cookies.txt")
+	f, err := os.Open(path)
 	if err != nil {
 		return
 	}

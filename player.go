@@ -33,6 +33,8 @@ var (
 	signatureTimestampRe  = regexp.MustCompile(`(?m)signatureTimestamp:(\d+),`)
 	signatureSourceCodeRe = regexp.MustCompile(`(?m)function\(([A-Za-z_0-9]+)\)\{([A-Za-z_0-9]+=[A-Za-z_0-9]+\.split\((?:[^)]+)\)(.+?)\.join\((?:[^)]+)\))\}`)
 	nsigCheckRe           = regexp.MustCompile(`(?m)if\(typeof (.+)\=\=\=.+\)return`)
+	splitObjectRefRe      = regexp.MustCompile(`[.\[]`)
+	validObjectNameRe     = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
 	nsigCache   = cache.New(-1, -1)
 	playerCache = cache.New(5*time.Minute, 10*time.Minute)
@@ -267,16 +269,15 @@ func extractSigSourceCode(player_js string, g *FindVariableResult) (string, erro
 	var_name := string(matches[1])
 
 	// Split on "." or "["
-	splitParts := regexp.MustCompile(`[.\[]`).Split(matches[3], -1)
+	splitParts := splitObjectRefRe.Split(matches[3], -1)
 	var obj_name string
 
 	if len(splitParts) > 0 {
 		potential_obj_name := strings.TrimSpace(strings.ReplaceAll(splitParts[0], ";", ""))
-		if regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`).MatchString(potential_obj_name) {
+		if validObjectNameRe.MatchString(potential_obj_name) {
 			obj_name = potential_obj_name
 		} else {
 			obj_name = potential_obj_name
-			fmt.Printf("Warning: Potentially complex object name found: %s\n", obj_name)
 		}
 	}
 
@@ -284,18 +285,10 @@ func extractSigSourceCode(player_js string, g *FindVariableResult) (string, erro
 		return "", fmt.Errorf("could not determine object name from decipher logic: %s", matches[3])
 	}
 
-	re := regexp.MustCompile(fmt.Sprintf(`(?sm)var\s+\Q%s\E\s*=\s*\{(.*?)\}\s*;`, obj_name))
-	obj_matches := re.FindStringSubmatch(player_js)
-
-	if len(obj_matches) < 2 {
-		re = regexp.MustCompile(fmt.Sprintf(`(?sm)\Q%s\E\s*=\s*\{(.*?)\}\s*;`, obj_name))
-		obj_matches = re.FindStringSubmatch(player_js)
-		if len(obj_matches) < 2 {
-			return "", fmt.Errorf("object definition for '%s' not found", obj_name)
-		}
+	functions, err := extractObjectDefinition(player_js, obj_name)
+	if err != nil {
+		return "", err
 	}
-
-	functions := obj_matches[1]
 
 	globalVarCode := g.Result
 	if !strings.HasSuffix(strings.TrimSpace(globalVarCode), ";") {
@@ -305,6 +298,34 @@ func extractSigSourceCode(player_js string, g *FindVariableResult) (string, erro
 	decipherLogic := matches[2]
 
 	return fmt.Sprintf("%s function descramble_sig(%s) { let %s={%s}; %s } descramble_sig(sig);", globalVarCode, var_name, obj_name, functions, decipherLogic), nil
+}
+
+func extractObjectDefinition(playerJS string, objectName string) (string, error) {
+	prefixes := []string{
+		fmt.Sprintf("var %s={", objectName),
+		fmt.Sprintf("%s={", objectName),
+	}
+
+	for _, prefix := range prefixes {
+		idx := strings.Index(playerJS, prefix)
+		if idx < 0 {
+			continue
+		}
+
+		objSubBody := playerJS[idx+len(prefix)-1:]
+		objBody, ok := cutAfterJS(objSubBody)
+		if !ok {
+			continue
+		}
+
+		if len(objBody) < 2 {
+			return "", fmt.Errorf("object definition for '%s' is empty", objectName)
+		}
+
+		return objBody[1 : len(objBody)-1], nil
+	}
+
+	return "", fmt.Errorf("object definition for '%s' not found", objectName)
 }
 
 func extractSigSourceCodeByMarkers(playerJS string) (string, error) {
