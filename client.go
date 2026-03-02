@@ -22,7 +22,7 @@ import (
 	"github.com/mengzhuo/cookiestxt"
 )
 
-var defaultYoutubeClient = "WEB"
+var defaultYoutubeClient = "ANDROID_VR"
 var ErrNoFormat = errors.New("no video format provided")
 
 type Client struct {

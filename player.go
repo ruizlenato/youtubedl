@@ -103,22 +103,27 @@ func NewPlayer() (player *Player, err error) {
 
 	player.global_variable, err = extractGlobalVariable(string(player_js))
 	if err != nil {
-		return
+		player.global_variable = nil
 	}
 
 	player.sig_timestamp, err = extractSigTimestamp(string(player_js))
 	if err != nil {
-		return
+		player.sig_timestamp = 0
 	}
 
-	player.sig_sc, err = extractSigSourceCode(string(player_js), player.global_variable)
-	if err != nil {
-		return
+	if player.global_variable != nil {
+		player.sig_sc, err = extractSigSourceCode(string(player_js), player.global_variable)
+		if err != nil {
+			player.sig_sc = ""
+		}
 	}
 
-	player.nsig_name, player.nsig_sc, err = extractNSigSourceCode(string(player_js), player.global_variable)
-	if err != nil {
-		return
+	if player.global_variable != nil {
+		player.nsig_name, player.nsig_sc, err = extractNSigSourceCode(string(player_js), player.global_variable)
+		if err != nil {
+			player.nsig_name = ""
+			player.nsig_sc = ""
+		}
 	}
 
 	nsig_check := nsigCheckRe.FindStringSubmatch(player.nsig_sc)
@@ -226,6 +231,9 @@ func extractGlobalVariable(data string) (*FindVariableResult, error) {
 
 func extractSigTimestamp(player_js string) (int, error) {
 	matches := signatureTimestampRe.FindStringSubmatch(player_js)
+	if len(matches) < 2 {
+		return 0, fmt.Errorf("failed to extract signature timestamp")
+	}
 
 	sig_timestamp, err := strconv.Atoi(string(matches[1]))
 	if err != nil {
@@ -243,6 +251,13 @@ func extractSigSourceCode(player_js string, g *FindVariableResult) (string, erro
 		lookup_regex_str := fmt.Sprintf(`function\(([A-Za-z_0-9]+)\)\{([A-Za-z_0-9]+=[A-Za-z_0-9]+\[%s\[\d+\]\]\([^)]*\)([\s\S]+?)\[%s\[\d+\]\]\([^)]*\))\}`, escaped_name, escaped_name)
 		lookup_regex := regexp.MustCompile(lookup_regex_str)
 		matches = lookup_regex.FindStringSubmatch(player_js)
+	}
+
+	if len(matches) == 0 {
+		script, err := extractSigSourceCodeByMarkers(player_js)
+		if err == nil {
+			return script, nil
+		}
 	}
 
 	if len(matches) == 0 {
@@ -290,6 +305,152 @@ func extractSigSourceCode(player_js string, g *FindVariableResult) (string, erro
 	decipherLogic := matches[2]
 
 	return fmt.Sprintf("%s function descramble_sig(%s) { let %s={%s}; %s } descramble_sig(sig);", globalVarCode, var_name, obj_name, functions, decipherLogic), nil
+}
+
+func extractSigSourceCodeByMarkers(playerJS string) (string, error) {
+	fnName := between(playerJS, `a.set("alr","yes");c&&(c=`, "(decodeURIC")
+	if fnName == "" {
+		return "", fmt.Errorf("failed to locate decipher function name")
+	}
+
+	fnStart := fmt.Sprintf("%s=function(a)", fnName)
+	fnIndex := strings.Index(playerJS, fnStart)
+	if fnIndex < 0 {
+		return "", fmt.Errorf("failed to locate decipher function body")
+	}
+
+	subBody := playerJS[fnIndex+len(fnStart):]
+	fnBody, ok := cutAfterJS(subBody)
+	if !ok {
+		return "", fmt.Errorf("failed to parse decipher function body")
+	}
+
+	decipherFunction := fmt.Sprintf("var %s%s", fnStart, fnBody)
+	manipulations := extractManipulations(playerJS, decipherFunction)
+
+	var script strings.Builder
+	if manipulations != "" {
+		script.WriteString(manipulations)
+		script.WriteString(";")
+	}
+	script.WriteString(decipherFunction)
+	script.WriteString(";")
+	script.WriteString(fmt.Sprintf("%s(sig);", fnName))
+
+	return script.String(), nil
+}
+
+func extractManipulations(body string, caller string) string {
+	objName := between(caller, `a=a.split("");`, ".")
+	if objName == "" {
+		return ""
+	}
+
+	objStart := fmt.Sprintf("var %s={", objName)
+	objIndex := strings.Index(body, objStart)
+	if objIndex < 0 {
+		return ""
+	}
+
+	objSubBody := body[objIndex+len(objStart)-1:]
+	objBody, ok := cutAfterJS(objSubBody)
+	if !ok {
+		return ""
+	}
+
+	return fmt.Sprintf("var %s=%s", objName, objBody)
+}
+
+func between(haystack string, left string, right string) string {
+	leftIdx := strings.Index(haystack, left)
+	if leftIdx < 0 {
+		return ""
+	}
+
+	start := leftIdx + len(left)
+	if start > len(haystack) {
+		return ""
+	}
+
+	rightIdx := strings.Index(haystack[start:], right)
+	if rightIdx < 0 {
+		return ""
+	}
+
+	return haystack[start : start+rightIdx]
+}
+
+func cutAfterJS(mixed string) (string, bool) {
+	if mixed == "" {
+		return "", false
+	}
+
+	bytes := []byte(mixed)
+	index := 0
+	nest := 0
+	var lastSignificant byte
+	hasLastSignificant := false
+
+	for nest > 0 || index == 0 {
+		if index >= len(bytes) {
+			return "", false
+		}
+
+		ch := bytes[index]
+		switch ch {
+		case '{', '[', '(':
+			nest++
+		case '}', ']', ')':
+			nest--
+		case '"', '\'', '`':
+			quote := ch
+			index++
+			for index < len(bytes) && bytes[index] != quote {
+				if bytes[index] == '\\' {
+					index++
+				}
+				index++
+			}
+			if index >= len(bytes) {
+				return "", false
+			}
+		case '/':
+			if index+1 < len(bytes) && bytes[index+1] == '*' {
+				index += 2
+				for index+1 < len(bytes) && !(bytes[index] == '*' && bytes[index+1] == '/') {
+					index++
+				}
+				if index+1 >= len(bytes) {
+					return "", false
+				}
+				index++
+			} else if hasLastSignificant && !((lastSignificant >= 'a' && lastSignificant <= 'z') || (lastSignificant >= 'A' && lastSignificant <= 'Z') || (lastSignificant >= '0' && lastSignificant <= '9') || lastSignificant == '_') {
+				index++
+				for index < len(bytes) && bytes[index] != '/' {
+					if bytes[index] == '\\' {
+						index++
+					}
+					index++
+				}
+				if index >= len(bytes) {
+					return "", false
+				}
+			}
+		default:
+			if ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' {
+				lastSignificant = ch
+				hasLastSignificant = true
+			}
+		}
+
+		index++
+	}
+
+	if index <= 1 {
+		return "", false
+	}
+
+	return mixed[:index], true
 }
 
 func extractNSigSourceCode(data string, g *FindVariableResult) (name string, code string, err error) {
