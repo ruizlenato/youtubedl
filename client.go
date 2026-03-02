@@ -1,6 +1,3 @@
-//go:generate /usr/bin/env npm --prefix generatejs/js update
-//go:generate go run generatejs/generate.go
-
 package youtubedl
 
 import (
