@@ -9,12 +9,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja/ast"
 	"github.com/dop251/goja/parser"
-	"github.com/patrickmn/go-cache"
 )
 
 type Player struct {
@@ -36,9 +36,61 @@ var (
 	splitObjectRefRe      = regexp.MustCompile(`[.\[]`)
 	validObjectNameRe     = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
-	nsigCache   = cache.New(-1, -1)
-	playerCache = cache.New(5*time.Minute, 10*time.Minute)
+	playerCacheTTL = 5 * time.Minute
+	playerCache    sync.Map
+	nsigCache      sync.Map
 )
+
+type playerCacheEntry struct {
+	player    *Player
+	expiresAt time.Time
+}
+
+func getCachedPlayer(playerID string) (*Player, bool) {
+	value, found := playerCache.Load(playerID)
+	if !found {
+		return nil, false
+	}
+
+	entry, ok := value.(playerCacheEntry)
+	if !ok {
+		playerCache.Delete(playerID)
+		return nil, false
+	}
+
+	if !entry.expiresAt.IsZero() && time.Now().After(entry.expiresAt) {
+		playerCache.Delete(playerID)
+		return nil, false
+	}
+
+	return entry.player, true
+}
+
+func setCachedPlayer(playerID string, player *Player) {
+	playerCache.Store(playerID, playerCacheEntry{
+		player:    player,
+		expiresAt: time.Now().Add(playerCacheTTL),
+	})
+}
+
+func getCachedNSig(n string) (string, bool) {
+	value, found := nsigCache.Load(n)
+	if !found {
+		return "", false
+	}
+
+	nsig, ok := value.(string)
+	if !ok {
+		nsigCache.Delete(n)
+		return "", false
+	}
+
+	return nsig, true
+}
+
+func setCachedNSig(n string, nsig string) {
+	nsigCache.Store(n, nsig)
+}
 
 func NewPlayer() (player *Player, err error) {
 	uri, err := url.Parse(URLs.YTBase)
@@ -76,9 +128,9 @@ func NewPlayer() (player *Player, err error) {
 
 	player_id := string(matches[1])
 
-	playerc, found := playerCache.Get(player_id)
+	playerc, found := getCachedPlayer(player_id)
 	if found {
-		return playerc.(*Player), nil
+		return playerc, nil
 	}
 
 	player_uri, err := url.Parse(URLs.YTBase)
@@ -97,6 +149,7 @@ func NewPlayer() (player *Player, err error) {
 	if err != nil {
 		return
 	}
+	defer player_resp.Body.Close()
 
 	player_js, err := io.ReadAll(player_resp.Body)
 	if err != nil {
@@ -133,7 +186,7 @@ func NewPlayer() (player *Player, err error) {
 		player.nsig_check = nsig_check[1]
 	}
 
-	playerCache.Set(player_id, player, cache.DefaultExpiration)
+	setCachedPlayer(player_id, player)
 
 	return
 }
@@ -176,7 +229,7 @@ func (p *Player) decipher(uri string, cipher string) (code string, err error) {
 
 	n := query.Get("n")
 	if p.nsig_sc != "" && n != "" {
-		nsig, found := nsigCache.Get(n)
+		nsig, found := getCachedNSig(n)
 		if !found {
 			vm := goja.New()
 			err := vm.Set(p.nsig_check, true)
@@ -195,10 +248,10 @@ func (p *Player) decipher(uri string, cipher string) (code string, err error) {
 			}
 
 			nsig = decipher(n)
-			nsigCache.Set(n, nsig, -1)
+			setCachedNSig(n, nsig)
 		}
 
-		query.Set("n", nsig.(string))
+		query.Set("n", nsig)
 
 	}
 
