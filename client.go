@@ -1,6 +1,7 @@
 package youtubedl
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,9 +15,9 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"sync/atomic"
-
-	"github.com/mengzhuo/cookiestxt"
+	"time"
 )
 
 var defaultYoutubeClient = "ANDROID_VR"
@@ -122,7 +123,7 @@ func (c *Client) LoadCookies(path string) (err error) {
 		return
 	}
 
-	cookies, err := cookiestxt.Parse(f)
+	cookies, err := parseCookiesTxt(f)
 	if err != nil {
 		return
 	}
@@ -142,6 +143,60 @@ func (c *Client) LoadCookies(path string) (err error) {
 	c.httpClient.Jar = jar
 
 	return
+}
+
+func parseCookiesTxt(r io.Reader) ([]*http.Cookie, error) {
+	scanner := bufio.NewScanner(r)
+	lineNumber := 0
+	var cookies []*http.Cookie
+
+	for scanner.Scan() {
+		lineNumber++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		httpOnly := false
+		if strings.HasPrefix(line, "#HttpOnly_") {
+			httpOnly = true
+			line = strings.TrimPrefix(line, "#HttpOnly_")
+		} else if strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.Split(line, "\t")
+		if len(parts) != 7 {
+			return nil, fmt.Errorf("invalid cookie line %d: expected 7 fields", lineNumber)
+		}
+
+		secure := strings.EqualFold(parts[3], "TRUE")
+		expires, err := strconv.ParseInt(parts[4], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cookie expiration at line %d: %w", lineNumber, err)
+		}
+
+		cookie := &http.Cookie{
+			Domain:   parts[0],
+			Path:     parts[2],
+			Secure:   secure,
+			HttpOnly: httpOnly,
+			Name:     parts[5],
+			Value:    parts[6],
+		}
+
+		if expires > 0 {
+			cookie.Expires = time.Unix(expires, 0)
+		}
+
+		cookies = append(cookies, cookie)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return cookies, nil
 }
 
 func (c *Client) GetVideo(id string, opts ...VideoOpts) (*Video, error) {

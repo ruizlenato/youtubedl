@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/dop251/goja v0.0.0-20260226184354-913bd86fb70c
-	github.com/mengzhuo/cookiestxt v1.0.6
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 )
 
