@@ -154,26 +154,27 @@ func NewPlayer() (player *Player, err error) {
 	if err != nil {
 		return
 	}
+	playerJS := string(player_js)
 
-	player.global_variable, err = extractGlobalVariable(string(player_js))
+	player.global_variable, err = extractGlobalVariable(playerJS)
 	if err != nil {
 		player.global_variable = nil
 	}
 
-	player.sig_timestamp, err = extractSigTimestamp(string(player_js))
+	player.sig_timestamp, err = extractSigTimestamp(playerJS)
 	if err != nil {
 		player.sig_timestamp = 0
 	}
 
 	if player.global_variable != nil {
-		player.sig_sc, err = extractSigSourceCode(string(player_js), player.global_variable)
+		player.sig_sc, err = extractSigSourceCode(playerJS, player.global_variable)
 		if err != nil {
 			player.sig_sc = ""
 		}
 	}
 
 	if player.global_variable != nil {
-		player.nsig_name, player.nsig_sc, err = extractNSigSourceCode(string(player_js), player.global_variable)
+		player.nsig_name, player.nsig_sc, err = extractNSigSourceCode(playerJS, player.global_variable)
 		if err != nil {
 			player.nsig_name = ""
 			player.nsig_sc = ""
