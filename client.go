@@ -2,7 +2,6 @@ package youtubedl
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -550,7 +549,7 @@ func (c *Client) downloadChunked(ctx context.Context, req *http.Request, w *io.P
 				abort(context.Canceled)
 				return
 			case data := <-chunks[i].data:
-				_, err := io.Copy(w, bytes.NewBuffer(data))
+				_, err := w.Write(data)
 				if err != nil {
 					abort(err)
 				}
