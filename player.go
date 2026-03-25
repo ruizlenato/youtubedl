@@ -34,7 +34,6 @@ var (
 	signatureSourceCodeRe = regexp.MustCompile(`(?m)function\(([A-Za-z_0-9]+)\)\{([A-Za-z_0-9]+=[A-Za-z_0-9]+\.split\((?:[^)]+)\)(.+?)\.join\((?:[^)]+)\))\}`)
 	nsigCheckRe           = regexp.MustCompile(`(?m)if\(typeof (.+)\=\=\=.+\)return`)
 	splitObjectRefRe      = regexp.MustCompile(`[.\[]`)
-	validObjectNameRe     = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
 	playerCacheTTL = 5 * time.Minute
 	playerCache    sync.Map
@@ -327,11 +326,7 @@ func extractSigSourceCode(player_js string, g *FindVariableResult) (string, erro
 
 	if len(splitParts) > 0 {
 		potential_obj_name := strings.TrimSpace(strings.ReplaceAll(splitParts[0], ";", ""))
-		if validObjectNameRe.MatchString(potential_obj_name) {
-			obj_name = potential_obj_name
-		} else {
-			obj_name = potential_obj_name
-		}
+		obj_name = potential_obj_name
 	}
 
 	if obj_name == "" {

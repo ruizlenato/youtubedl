@@ -17,10 +17,9 @@ import (
 
 type contextKey string
 type contextInfo struct {
-	Self        *Client
-	Player      *Player
-	Client      *YoutubeClient
-	VisitorData string
+	Self   *Client
+	Player *Player
+	Client *YoutubeClient
 }
 
 func httpPostBodyBytes(ctx context.Context, url string, body any) ([]byte, error) {

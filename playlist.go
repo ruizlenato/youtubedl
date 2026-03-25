@@ -182,16 +182,3 @@ func (vje PlaylistVideoRenderer) PlaylistEntry() *PlaylistEntry {
 		Duration: &d,
 	}
 }
-
-type withRuns struct {
-	Runs []struct {
-		Text string `json:"text"`
-	} `json:"runs"`
-}
-
-func (wr withRuns) String() string {
-	if len(wr.Runs) > 0 {
-		return wr.Runs[0].Text
-	}
-	return ""
-}
