@@ -107,17 +107,17 @@ func (p *Playlist) parsePlaylistInfo(ctx context.Context, body []byte) (err erro
 	for continuation != "" {
 		data := info.Player.prepareInnertubePlaylistData(continuation, true, info.Client)
 
-		base_uri, err := url.Parse(URLs.YTBase)
+		baseURI, err := url.Parse(URLs.YTBase)
 		if err != nil {
 			return err
 		}
-		base_uri.Path = path.Join(base_uri.Path, "/youtubei/v1/browse")
+		baseURI.Path = path.Join(baseURI.Path, "/youtubei/v1/browse")
 		if info.Client.APIKey != "" {
-			query := base_uri.Query()
+			query := baseURI.Query()
 			query.Add("key", info.Client.APIKey)
 		}
 
-		body, err := httpPostBodyBytes(ctx, base_uri.String(), data)
+		body, err := httpPostBodyBytes(ctx, baseURI.String(), data)
 		if err != nil {
 			return err
 		}

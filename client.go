@@ -313,19 +313,19 @@ func (c *Client) GetPlaylistContext(ctx context.Context, uri string, opts ...Vid
 		return nil, fmt.Errorf("extractPlaylistID failed: %w", err)
 	}
 
-	base_uri, err := url.Parse(URLs.YTBase)
+	baseURI, err := url.Parse(URLs.YTBase)
 	if err != nil {
 		return nil, err
 	}
 
-	base_uri.Path = path.Join(base_uri.Path, "/youtubei/v1/browse")
+	baseURI.Path = path.Join(baseURI.Path, "/youtubei/v1/browse")
 	if client.APIKey != "" {
-		query := base_uri.Query()
+		query := baseURI.Query()
 		query.Add("key", client.APIKey)
 	}
 
 	data := c.player.prepareInnertubePlaylistData(id, false, &client)
-	body, err := httpPostBodyBytes(ctx, base_uri.String(), data)
+	body, err := httpPostBodyBytes(ctx, baseURI.String(), data)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +389,7 @@ func (p *Player) generatePlayerParams(id string, client *YoutubeClient) innertub
 		// Params:                   playerParams,
 		PlaybackContext: &playbackContext{
 			ContentPlaybackContext: contentPlaybackContext{
-				SignatureTimestamp: p.sig_timestamp,
+				SignatureTimestamp: p.sigTimestamp,
 				// HTML5Preference: "HTML5_PREF_WANTS",
 			},
 		},

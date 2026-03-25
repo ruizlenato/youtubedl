@@ -14,8 +14,8 @@ func TestPlayer(t *testing.T) {
 		t.Fatalf("failed to create player: %v", err)
 	}
 
-	if p.sig_timestamp < 0 {
-		t.Errorf("p.sig_timestamp is negative")
+	if p.sigTimestamp < 0 {
+		t.Errorf("p.sigTimestamp is negative")
 	}
 	if p.visitorData == "" {
 		t.Fatalf("p.visitorData is empty")
@@ -30,21 +30,21 @@ func TestPlayer(t *testing.T) {
 		t.Errorf("failed to decode visitorData: %v", err)
 	}
 
-	if p.nsig_sc != "" {
-		if p.nsig_name == "" {
-			t.Errorf("p.nsig_name is empty while p.nsig_sc is set")
+	if p.nsigSC != "" {
+		if p.nsigName == "" {
+			t.Errorf("p.nsigName is empty while p.nsigSC is set")
 		}
 
-		_, err = parser.ParseFile(nil, "", p.nsig_sc, 0)
+		_, err = parser.ParseFile(nil, "", p.nsigSC, 0)
 		if err != nil {
-			t.Errorf("failed to parse p.nsig_sc: %v", err)
+			t.Errorf("failed to parse p.nsigSC: %v", err)
 		}
 	}
 
-	if p.sig_sc != "" {
-		_, err = parser.ParseFile(nil, "", p.sig_sc, 0)
+	if p.sigSC != "" {
+		_, err = parser.ParseFile(nil, "", p.sigSC, 0)
 		if err != nil {
-			t.Errorf("failed to parse p.sig_sc: %v", err)
+			t.Errorf("failed to parse p.sigSC: %v", err)
 		}
 	}
 }
