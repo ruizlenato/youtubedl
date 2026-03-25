@@ -123,6 +123,29 @@ func (list FormatList) Sort() {
 	})
 }
 
+func audioCodecRank(mimeType string) int {
+	if strings.Contains(mimeType, "mp4") {
+		return 1
+	}
+	if strings.Contains(mimeType, "opus") {
+		return 2
+	}
+	return 0
+}
+
+func videoCodecRank(mimeType string) int {
+	if strings.Contains(mimeType, "av01") {
+		return 1
+	}
+	if strings.Contains(mimeType, "vp9") {
+		return 2
+	}
+	if strings.Contains(mimeType, "avc1") {
+		return 3
+	}
+	return 0
+}
+
 // sortFormat sorts video by resolution, FPS, codec (av01, vp9, avc1), bitrate
 // sorts audio by default, codec (mp4, opus), channels, bitrate, sample rate
 func sortFormat(i int, j int, formats FormatList) bool {
@@ -145,15 +168,9 @@ func sortFormat(i int, j int, formats FormatList) bool {
 				// Sort by default
 				if (formats[i].AudioTrack == nil && formats[j].AudioTrack == nil) || (formats[i].AudioTrack != nil && formats[j].AudioTrack != nil && formats[i].AudioTrack.AudioIsDefault == formats[j].AudioTrack.AudioIsDefault) {
 					// Sort by codec
-					codec := map[int]int{}
-					for _, index := range []int{i, j} {
-						if strings.Contains(formats[index].MimeType, "mp4") {
-							codec[index] = 1
-						} else if strings.Contains(formats[index].MimeType, "opus") {
-							codec[index] = 2
-						}
-					}
-					if codec[i] == codec[j] {
+					codecI := audioCodecRank(formats[i].MimeType)
+					codecJ := audioCodecRank(formats[j].MimeType)
+					if codecI == codecJ {
 						// Sort by Audio Channel
 						if formats[i].AudioChannels == formats[j].AudioChannels {
 							// Sort by Audio Bitrate
@@ -165,7 +182,7 @@ func sortFormat(i int, j int, formats FormatList) bool {
 						}
 						return formats[i].AudioChannels > formats[j].AudioChannels
 					}
-					return codec[i] < codec[j]
+					return codecI < codecJ
 				} else if formats[i].AudioTrack != nil && formats[i].AudioTrack.AudioIsDefault {
 					return true
 				}
@@ -173,21 +190,13 @@ func sortFormat(i int, j int, formats FormatList) bool {
 			}
 			// Video
 			// Sort by codec
-			codec := map[int]int{}
-			for _, index := range []int{i, j} {
-				if strings.Contains(formats[index].MimeType, "av01") {
-					codec[index] = 1
-				} else if strings.Contains(formats[index].MimeType, "vp9") {
-					codec[index] = 2
-				} else if strings.Contains(formats[index].MimeType, "avc1") {
-					codec[index] = 3
-				}
-			}
-			if codec[i] == codec[j] {
+			codecI := videoCodecRank(formats[i].MimeType)
+			codecJ := videoCodecRank(formats[j].MimeType)
+			if codecI == codecJ {
 				// Sort by Audio Bitrate
 				return formats[i].Bitrate > formats[j].Bitrate
 			}
-			return codec[i] < codec[j]
+			return codecI < codecJ
 		}
 		return formats[i].FPS > formats[j].FPS
 	}
