@@ -159,6 +159,7 @@ func extractPlaylistEntries(vids []PlaylistVideoListContents) ([]*PlaylistEntry,
 	return entries, continuation, nil
 }
 
+// PlaylistEntry converts a playlist renderer item into a PlaylistEntry.
 func (vje PlaylistVideoRenderer) PlaylistEntry() *PlaylistEntry {
 	if vje.LengthSeconds == nil {
 		return &PlaylistEntry{

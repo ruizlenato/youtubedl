@@ -91,6 +91,7 @@ func setCachedNSig(n string, nsig string) {
 	nsigCache.Store(n, nsig)
 }
 
+// NewPlayer fetches and prepares the current YouTube player scripts and metadata.
 func NewPlayer() (player *Player, err error) {
 	uri, err := url.Parse(URLs.YTBase)
 	if err != nil {
@@ -591,6 +592,7 @@ type FindVariableResult struct {
 	Result string
 }
 
+// FindVariable finds a variable assignment in JavaScript source that matches the provided criteria.
 func FindVariable(source string, args FindVariableArgs) (*FindVariableResult, error) {
 	var reg *regexp.Regexp
 	var err error
@@ -674,6 +676,7 @@ type FindFunctionResult struct {
 	Result string
 }
 
+// FindFunction finds a function assignment in JavaScript source that matches the provided criteria.
 func FindFunction(source string, args FindFunctionArgs) (*FindFunctionResult, error) {
 	var reg *regexp.Regexp
 	var err error

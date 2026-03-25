@@ -171,6 +171,7 @@ var userAgents = []string{
 
 var seedUserAgentRand sync.Once
 
+// RandomUserAgent returns a random browser-like user agent string.
 func RandomUserAgent() string {
 	seedUserAgentRand.Do(func() {
 		rand.Seed(uint64(time.Now().UnixNano()))

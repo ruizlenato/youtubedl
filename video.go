@@ -40,6 +40,7 @@ type videooptions struct {
 
 type VideoOpts func(*videooptions)
 
+// WithClient selects which YouTube client profile is used for requests.
 func WithClient(client string) VideoOpts {
 	return func(o *videooptions) {
 		o.client = client
@@ -154,10 +155,12 @@ func (v *Video) extractDataFromPlayerResponse(prData playerResponseData) error {
 	return nil
 }
 
+// SortBitrateDesc reports whether format i should sort before j by higher bitrate.
 func (v *Video) SortBitrateDesc(i int, j int) bool {
 	return v.Formats[i].Bitrate > v.Formats[j].Bitrate
 }
 
+// SortBitrateAsc reports whether format i should sort before j by lower bitrate.
 func (v *Video) SortBitrateAsc(i int, j int) bool {
 	return v.Formats[i].Bitrate < v.Formats[j].Bitrate
 }

@@ -46,6 +46,7 @@ type Format struct {
 	}
 }
 
+// LanguageDisplayName returns the audio track display name when available.
 func (f *Format) LanguageDisplayName() string {
 	if f.AudioTrack == nil {
 		return ""

@@ -88,12 +88,14 @@ type clientoptions struct {
 
 type ClientOpts func(*clientoptions)
 
+// WithHTTPClient sets a custom HTTP client for the youtubedl client.
 func WithHTTPClient(client *http.Client) ClientOpts {
 	return func(o *clientoptions) {
 		o.httpClient = client
 	}
 }
 
+// New creates a new youtubedl client.
 func New(opts ...ClientOpts) (out *Client, err error) {
 	optsMap := clientoptions{}
 
@@ -116,6 +118,7 @@ func New(opts ...ClientOpts) (out *Client, err error) {
 	}, nil
 }
 
+// LoadCookies loads Netscape-format cookies from a file into the client's cookie jar.
 func (c *Client) LoadCookies(path string) (err error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -198,10 +201,12 @@ func parseCookiesTxt(r io.Reader) ([]*http.Cookie, error) {
 	return cookies, nil
 }
 
+// GetVideo fetches video metadata and available formats for a video ID or URL.
 func (c *Client) GetVideo(id string, opts ...VideoOpts) (*Video, error) {
 	return c.GetVideoContext(context.Background(), id, opts...)
 }
 
+// GetVideoContext is like GetVideo but accepts a context.
 func (c *Client) GetVideoContext(ctx context.Context, id string, opts ...VideoOpts) (*Video, error) {
 	id, err := ExtractVideoID(id)
 	if err != nil {
@@ -334,10 +339,12 @@ func (c *Client) GetPlaylistContext(ctx context.Context, uri string, opts ...Vid
 	return p, p.parsePlaylistInfo(ctx, body)
 }
 
+// VideoFromPlaylistEntry fetches full video metadata for a playlist entry.
 func (c *Client) VideoFromPlaylistEntry(entry *PlaylistEntry, opts ...VideoOpts) (*Video, error) {
 	return c.GetVideoContext(context.Background(), entry.ID, opts...)
 }
 
+// VideoFromPlaylistEntryContext is like VideoFromPlaylistEntry but accepts a context.
 func (c *Client) VideoFromPlaylistEntryContext(ctx context.Context, entry *PlaylistEntry, opts ...VideoOpts) (*Video, error) {
 	return c.GetVideoContext(ctx, entry.ID, opts...)
 }
@@ -437,10 +444,12 @@ func getVisitorData() (out string, err error) {
 	return "", fmt.Errorf("visitor data not found in expected structure")
 }
 
+// GetStreamURL returns a direct stream URL for the provided format.
 func (c *Client) GetStreamURL(video *Video, format *Format) (string, error) {
 	return c.GetStreamURLContext(context.Background(), video, format)
 }
 
+// GetStreamURLContext is like GetStreamURL but accepts a context.
 func (c *Client) GetStreamURLContext(ctx context.Context, video *Video, format *Format) (string, error) {
 	if format == nil {
 		return "", ErrNoFormat
@@ -449,6 +458,7 @@ func (c *Client) GetStreamURLContext(ctx context.Context, video *Video, format *
 	return c.player.decipher(format.URL, format.Cipher)
 }
 
+// GetStream returns a readable stream and total size for the provided format.
 func (c *Client) GetStream(video *Video, format *Format) (io.ReadCloser, int64, error) {
 	return c.GetStreamContext(context.Background(), video, format)
 }
