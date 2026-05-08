@@ -2,9 +2,10 @@ package youtubedl
 
 var Clients = map[string]YoutubeClient{
 	"ANDROID": {
-		Name:      "ANDROID",
-		Version:   "20.10.38",
-		UserAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",
+		Name:       "ANDROID",
+		Version:    "21.03.36",
+		UserAgent:  "com.google.android.youtube/21.03.36(Linux; U; Android 16; en_US; SM-S908E Build/TP1A.220624.014) gzip",
+		SDKVersion: 36,
 	},
 	"IOS": {
 		Name:        "IOS",
