@@ -80,3 +80,32 @@ func main() {
 - `(*Client).GetStreamURL(video *Video, format *Format) (string, error)`
 - `(*Client).GetPlaylist(url string, opts ...VideoOpts) (*Playlist, error)`
 - `WithClient(client string) VideoOpts`
+
+<details>
+<summary>Download test examples</summary>
+
+### Run all real download tests
+
+```bash
+go test -v -run "TestDownloadVideo|TestDownloadVideoStream|TestDownloadVideoToFile|TestGetStreamURL|TestDownloadVideoWithContext|TestDownloadVideoWithClient|TestDownloadVideoFormatFilters" -count=1
+```
+
+### Run only the file download test
+
+```bash
+go test -v -run TestDownloadVideoToFile -count=1
+```
+
+### Keep the downloaded file (PowerShell)
+
+```powershell
+$env:KEEP_DOWNLOAD="1"; go test -v -run TestDownloadVideoToFile -count=1
+```
+
+### Run quick video ID extraction test
+
+```bash
+go test -v -run TestExtractVideoID -count=1
+```
+
+</details>
