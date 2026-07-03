@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,23 +79,25 @@ func httpDo(ctx context.Context, req *http.Request) (*http.Response, error) {
 		req.Header.Set("User-Agent", client.UserAgent)
 	}
 
-	req.Header.Set("Origin", "https://youtube.com")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	if strings.HasSuffix(req.URL.Host, "youtube.com") {
+		req.Header.Set("Origin", "https://youtube.com")
+		req.Header.Set("Sec-Fetch-Mode", "navigate")
 
-	consentID := strconv.Itoa(rand.Intn(899) + 100) //nolint:gosec
+		consentID := strconv.Itoa(rand.Intn(899) + 100) //nolint:gosec
 
-	req.AddCookie(&http.Cookie{
-		Name:   "CONSENT",
-		Value:  "YES+cb.20210328-17-p0.en+FX+" + consentID,
-		Path:   "/",
-		Domain: ".youtube.com",
-	})
+		req.AddCookie(&http.Cookie{
+			Name:   "CONSENT",
+			Value:  "YES+cb.20210328-17-p0.en+FX+" + consentID,
+			Path:   "/",
+			Domain: ".youtube.com",
+		})
+	}
 
 	res, err := info.Self.httpClient.Do(req)
 
 	log := slog.With("method", req.Method, "url", req.URL)
 
-	if err == nil && res.StatusCode != http.StatusOK {
+	if err == nil && res.StatusCode != http.StatusOK && res.StatusCode != http.StatusPartialContent {
 		err = ErrUnexpectedStatusCode(res.StatusCode)
 		res.Body.Close()
 		res = nil

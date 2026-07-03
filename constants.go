@@ -3,14 +3,14 @@ package youtubedl
 var Clients = map[string]YoutubeClient{
 	"ANDROID": {
 		Name:       "ANDROID",
-		Version:    "21.03.36",
-		UserAgent:  "com.google.android.youtube/21.03.36(Linux; U; Android 16; en_US; SM-S908E Build/TP1A.220624.014) gzip",
-		SDKVersion: 36,
+		Version:    "20.10.38",
+		UserAgent:  "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",
+		SDKVersion: 30,
 	},
 	"IOS": {
 		Name:        "IOS",
-		Version:     "19.29.1",
-		UserAgent:   "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
+		Version:     "21.02.3",
+		UserAgent:   "com.google.ios.youtube/21.02.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
 		DeviceModel: "iPhone16,2",
 	},
 	"TV_EMBEDDED": {

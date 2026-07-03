@@ -576,9 +576,7 @@ func (c *Client) downloadChunked(ctx context.Context, req *http.Request, w *io.P
 }
 
 func (c *Client) downloadChunk(ctx context.Context, req *http.Request, chunk *chunk) error {
-	q := req.URL.Query()
-	q.Set("range", fmt.Sprintf("%d-%d", chunk.start, chunk.end))
-	req.URL.RawQuery = q.Encode()
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", chunk.start, chunk.end))
 
 	resp, err := httpDo(ctx, req)
 	if err != nil {
@@ -586,7 +584,7 @@ func (c *Client) downloadChunk(ctx context.Context, req *http.Request, chunk *ch
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusPartialContent {
 		return ErrUnexpectedStatusCode(resp.StatusCode)
 	}
 
