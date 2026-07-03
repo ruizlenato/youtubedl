@@ -455,7 +455,11 @@ func (c *Client) GetStreamURLContext(ctx context.Context, video *Video, format *
 		return "", ErrNoFormat
 	}
 
-	return c.player.decipher(format.URL, format.Cipher)
+	cipher := format.Cipher
+	if cipher == "" {
+		cipher = format.CipherV2
+	}
+	return c.player.decipher(format.URL, cipher)
 }
 
 // GetStream returns a readable stream and total size for the provided format.

@@ -12,6 +12,7 @@ type Format struct {
 	MimeType         string `json:"mimeType"`
 	Quality          string `json:"quality"`
 	Cipher           string `json:"signatureCipher"`
+	CipherV2         string `json:"cipher"`
 	Bitrate          int    `json:"bitrate"`
 	FPS              int    `json:"fps"`
 	Width            int    `json:"width"`
